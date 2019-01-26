@@ -1,4 +1,5 @@
 
+import kivy
 from kivy.app import App
 from kivy.uix.camera import Camera
 from kivy.uix.boxlayout import BoxLayout
@@ -26,17 +27,18 @@ def image_to_latex(file_path):
 
 ################ split latex into latex equations
 def split_into_equations(s):
-	return s[25:-18].split("\\")
+	#print s
+	return s[27:-20].split("\\\\")
 
-from process_latex import process_sympy
+from latex2sympy.process_latex import process_sympy
 import sympy
 
 def check_equations(latex_equations):
-	#for i in latex_equations:
-	#	print i
+	for i in latex_equations:
+		print i[2:-2]
 	equations = [process_sympy(i[2:-2]) for i in latex_equations]
-	#for i in equations:
-	#	print i
+	for i in equations:
+		print i
 	solution_sets = [sympy.solveset(i, domain=sympy.S.Complexes) for i in equations]
 	return [ i==solution_sets[0] for i in solution_sets]
 ################
@@ -81,9 +83,10 @@ class CameraExample(App):
 
     # Take the current frame of the video as the photo graph       
     def onCameraClick(self, *args):
-        # self.cameraObject.export_to_png('output.png')
-        # latex_string = image_to_latex('output.png')
-        latex_string = "\left. \begin{array} { l } { x ^ { 2 } + 5 x + 6 = 0 } \\ { 3 x + 2 x + x ^ { 2 } + 3 x = 3 } \\ { x ^ { 2 } = 3 x + 2 x + 3 } \end{array} \right."
+        self.cameraObject.export_to_png('output.png')
+        latex_string = image_to_latex('output.png')
+        #latex_string = "\left. \begin{array} { l } { x ^ { 2 } + 5 x + 6 = 0 } \\ { 3 x + 2 x + x ^ { 2 } + 3 x = 3 } \\ { x ^ { 2 } = 3 x + 2 x + 3 } \end{array} \right."
+        print latex_string
         latex_equations = split_into_equations(latex_string)
         print latex_equations
         self.output = Output(latex_equations)
