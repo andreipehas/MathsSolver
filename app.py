@@ -10,6 +10,10 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.image import Image
 
 from kivy.core.window import Window
+
+from kivy.cache import Cache
+
+
 Window.clearcolor = (1, 1, 1, 1)
 Window.size = (1023, 1267)
 
@@ -39,7 +43,10 @@ def sympy_equation_to_png(equation, filename):
 
 ################ split latex into latex equations
 def split_into_equations(s):
-    return s[27:-20].split("\\\\")
+    if(len(s.split("\\\\"))>1):
+        return s[27:-20].split("\\\\")
+    else:
+        return s.split("=")
 
 from process_latex import process_sympy
 import sympy
@@ -52,16 +59,24 @@ import sympy
 #     return [ i==solution_sets[0] for i in solution_sets]
 
 def check_equations_and_generate_pngs(latex_equations):
-    # for i in latex_equations:
-        # print i[2:-2]
-    equations_raw = [process_sympy(i[2:-2]) for i in latex_equations]
-    for i, equation in enumerate(equations_raw):
+    for i in latex_equations:
+        print i
+    is_multiple = len(latex_equations[0].split("="))>1
+    if(is_multiple):
+        equations_raw = [process_sympy(i[2:-2]) for i in latex_equations]
+    else:
+        equations_raw = [process_sympy(i) for i in latex_equations]
+    for i, equation in enumerate(latex_equations):
         sympy_equation_to_png(equation, "output"+str(i)+".png")
-    equations = [sympy.simplify((i.args[0]-i.args[1]).doit()) for i in equations_raw]
-    for i in equations:
-        print i, sympy.solveset(i, domain=sympy.S.Complexes)
-    solution_sets = [sympy.solveset(i, domain=sympy.S.Complexes) for i in equations]
-    return [True]+[solution_sets[i]==solution_sets[i-1] for i in range(1, len(solution_sets))]
+    if(is_multiple):
+        equations = [sympy.simplify((i.args[0]-i.args[1]).doit()) for i in equations_raw]
+        for i in equations:
+            print i, sympy.solveset(i, domain=sympy.S.Complexes)
+        solution_sets = [sympy.solveset(i, domain=sympy.S.Complexes) for i in equations]
+        return [True]+[solution_sets[i]==solution_sets[i-1] for i in range(1, len(solution_sets))]
+    else:
+        equations = [sympy.simplify(i.doit()) for i in equations_raw]
+        return [True]+[sympy.solveset(equations[i-1]-equations[i])==sympy.solveset(0) for i in range(1, len(equations))]
 ################
  
 
@@ -69,6 +84,7 @@ class Output(GridLayout):
     def __init__(self, latex_equations, **kwargs):
         super(Output, self).__init__(**kwargs)
         self.cols = 3
+        # TODO: ENABLE
         # try:
         checked_equations = check_equations_and_generate_pngs(latex_equations)
         # except:
@@ -113,11 +129,21 @@ class CameraExample(App):
         # add camera and button to the layout
         self.layout.add_widget(self.cameraObject)
         self.layout.add_widget(self.cameraClick)
-        return self.layout
+        return self.layout 
 
+    def delete_output_pngs(self):
+        import glob, os, multiprocessing
+        p = multiprocessing.Pool(4)
+        print os.listdir('.') 
+        print "after"
+        p.map(os.remove, glob.glob("output*.png"))
+        print os.listdir('.') 
 
     # Take the current frame of the video as the photo graph       
     def onCameraClick(self, *args):
+        Cache.remove('kv.image')
+        Cache.remove('kv.texture')
+        self.delete_output_pngs()
         if self.clicked == True:
             self.layout.remove_widget(self.output)
         self.clicked = True
@@ -132,5 +158,5 @@ class CameraExample(App):
         self.layout.add_widget(self.output)
 
 # Start the Camera App
-if __name__ == '__main__':
+if __name__ == '__main__': 
      CameraExample().run()
