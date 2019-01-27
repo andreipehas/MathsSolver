@@ -13,6 +13,7 @@ from kivy.core.window import Window
 
 from kivy.cache import Cache
 
+import traceback
 
 Window.clearcolor = (1, 1, 1, 1)
 Window.size = (1023, 1267)
@@ -42,21 +43,22 @@ def sympy_equation_to_png(equation, filename):
 ################
 
 ################ split latex into latex equations
+import re
 def split_into_equations(s):
-    if(len(s.split("\\\\"))>1):
+    s = re.sub("operatorname { (.*?) }", "\g<1>", s)
+    if "{ =" in s:
+        s = s[27:-20].replace("} \\\\ {", "")
+        s = s.replace("\\quad", "")
+        s = s[1:-2]
+        print "halfway split s:", s
+        return s.split("=")
+    elif (len(s.split("\\\\"))>1):
         return s[27:-20].split("\\\\")
     else:
         return s.split("=")
 
-from latex2sympy.process_latex import process_sympy
+from process_latex import process_sympy
 import sympy
-
-# def check_equations_and_generate_pngs(latex_equations):
-#     equations = [process_sympy(i[2:-2]) for i in latex_equations]
-#     for i, equation in enumerate(equations):
-#         sympy_equation_to_png(equation, "output"+str(i)+".png")
-#     solution_sets = [sympy.solveset(i, domain=sympy.S.Complexes) for i in equations]
-#     return [ i==solution_sets[0] for i in solution_sets]
 
 def check_equations_and_generate_pngs(latex_equations):
     for i in latex_equations:
@@ -71,30 +73,26 @@ def check_equations_and_generate_pngs(latex_equations):
     if(is_multiple):
         equations = [sympy.simplify((i.args[0]-i.args[1]).doit()) for i in equations_raw]
         for i in equations:
-            print i, sympy.solveset(i, domain=sympy.S.Complexes)
+            print "Equation "+str(i), sympy.solveset(i, domain=sympy.S.Complexes)
         solution_sets = [sympy.solveset(i, domain=sympy.S.Complexes) for i in equations]
+        print "solution_sets"
+        print solution_sets
         return [True]+[solution_sets[i-1].is_subset(solution_sets[i]) for i in range(1, len(solution_sets))]
     else:
         equations = [sympy.simplify(i.doit()) for i in equations_raw]
-        differences = [0]+[sympy.simplify(equations[i-1]-equations[i]) for i in range(1, len(equations))]
-        for i, equation in enumerate(differences):
-            sympy_equation_to_png(equation, "diff"+str(i)+".png")
-        return [True]+[sympy.solveset(differences[i])==sympy.solveset(0) for i in range(1, len(differences))]
+        return [True]+[sympy.solveset(equations[i-1]-equations[i])==sympy.solveset(0) for i in range(1, len(equations))]
 ################
  
 
 class Output(GridLayout):
     def __init__(self, latex_equations, **kwargs):
         super(Output, self).__init__(**kwargs)
-        is_multiple = len(latex_equations[0].split("="))>1
-        if(is_multiple):
-            self.cols = 3
-        else:
-            self.cols = 4
+        self.cols = 3
         # TODO: ENABLE
         try:
             checked_equations = check_equations_and_generate_pngs(latex_equations)
         except:
+            traceback.print_exc()
             self.add_widget(Label(text="Ooops! I didn't understand that input.", color=[1,0,0, 1], font_size='60dp'))
             return
         print checked_equations
@@ -108,7 +106,7 @@ class Output(GridLayout):
                 else: 
                     self.add_widget(Image(source="arrow_red.jpg"))
 
-            self.add_widget(Image(source="output"+str(i)+".png", size_hint_x=0.8, size_hint_y=0.8, allow_stretch=True))
+            self.add_widget(Image(source="output"+str(i)+".png", allow_stretch=True))
 
             if checked_equation == True:
                 text = "[b]This step is correct![/b]"
@@ -117,8 +115,6 @@ class Output(GridLayout):
                 self.add_widget(Label(text=text, color=[0,1,0, 1], font_size='30dp', markup=True))
             else:
                 self.add_widget(Label(text="[b]This step went wrong![/b]", color=[1,0,0, 1], font_size='30dp', markup=True))
-                
-            self.add_widget(Image(source="diff"+str(i)+".png", size_hint_x=0.8, size_hint_y=0.8, allow_stretch=True))
 
 
 class CameraExample(App):
@@ -143,10 +139,7 @@ class CameraExample(App):
     def delete_output_pngs(self):
         import glob, os, multiprocessing
         p = multiprocessing.Pool(4)
-        print os.listdir('.') 
-        print "after"
         p.map(os.remove, glob.glob("output*.png"))
-        print os.listdir('.') 
 
     # Take the current frame of the video as the photo graph       
     def onCameraClick(self, *args):
@@ -157,10 +150,9 @@ class CameraExample(App):
             self.layout.remove_widget(self.output)
         self.clicked = True
         self.cameraObject.export_to_png('output.png')
-        latex_string = image_to_latex('output.png')
+        # latex_string = image_to_latex('output.png')
+        latex_string = u'\\left. \\begin{array} { l } { 4 x ^ { 3 } + \\int _ { 0 } ^ { x } x ^ { 2 } d x } \\\\ { = 4 x ^ { 3 } + 3 x ^ { 3 } } \\\\ { = 7 x ^ { 3 } } \\end{array} \\right.'
         print latex_string.__repr__()
-        # latex_string = "\left. \begin{array} { l } { x ^ { 2 } + 5 x + 6 = 0 } \\ { 3 x + 2 x + x ^ { 2 } + 3 x = 3 } \\ { x ^ { 2 } = -8 x + 3 } \end{array} \right."
-        # latex_string = "\left. \begin{array} { l } { x ^ { 2 } + 5 x + 6 = 0 } \\ { 3 x + 2 x + x ^ { 2 } + 3 x = 3 } \\ { x ^ { 2 } = 3 x + 2 x + 3 } \\ { 6 = x ^ { 2 } + 4 + 5 } \end{array} \right."
         latex_equations = split_into_equations(latex_string)
         print latex_equations
         self.output = Output(latex_equations, size_hint=(1, .35))
