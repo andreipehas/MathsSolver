@@ -42,10 +42,19 @@ def sympy_equation_to_png(equation, filename):
     preview(equation, viewer='file', filename=filename)
 ################
 
+def is_subseq(x, y):
+    it = iter(y)
+    return all(c in it for c in x)
+    
+def easter_egg(s):
+	return is_subseq("senpai", s)
+
 ################ split latex into latex equations
 import re
 def split_into_equations(s):
     s = re.sub("operatorname { (.*?) }", "\g<1>", s)
+    if(easter_egg(s)):
+        return [s]
     if "{ =" in s:
         s = s[27:-20].replace("} \\\\ {", "")
         s = s.replace("\\quad", "")
@@ -57,7 +66,7 @@ def split_into_equations(s):
     else:
         return s.split("=")
 
-from process_latex import process_sympy
+from latex2sympy.process_latex import process_sympy
 import sympy
 
 def check_equations_and_generate_pngs(latex_equations):
@@ -87,6 +96,14 @@ def check_equations_and_generate_pngs(latex_equations):
 class Output(GridLayout):
     def __init__(self, latex_equations, **kwargs):
         super(Output, self).__init__(**kwargs)
+        
+        #easter egg
+        for i in latex_equations:
+            if(easter_egg(i)):
+                self.cols = 1
+                self.add_widget(Image(source="sympysenpai.png"))
+                return
+        
         self.cols = 3
         # TODO: ENABLE
         try:
@@ -150,8 +167,8 @@ class CameraExample(App):
             self.layout.remove_widget(self.output)
         self.clicked = True
         self.cameraObject.export_to_png('output.png')
-        # latex_string = image_to_latex('output.png')
-        latex_string = u'\\left. \\begin{array} { l } { 4 x ^ { 3 } + \\int _ { 0 } ^ { x } x ^ { 2 } d x } \\\\ { = 4 x ^ { 3 } + 3 x ^ { 3 } } \\\\ { = 7 x ^ { 3 } } \\end{array} \\right.'
+        latex_string = image_to_latex('output.png')
+        #latex_string = u'\\left. \\begin{array} { l } { 4 x ^ { 3 } + \\int _ { 0 } ^ { x } x ^ { 2 } d x } \\\\ { = 4 x ^ { 3 } + 3 x ^ { 3 } } \\\\ { = 7 x ^ { 3 } } \\end{array} \\right.'
         print latex_string.__repr__()
         latex_equations = split_into_equations(latex_string)
         print latex_equations
