@@ -1,3 +1,5 @@
+senpai = False
+
 
 from kivy.app import App
 from kivy.uix.camera import Camera
@@ -47,7 +49,7 @@ def is_subseq(x, y):
     return all(c in it for c in x)
     
 def easter_egg(s):
-	return is_subseq("senpai", s)
+	return senpai and is_subseq("senpai", s)
 
 ################ split latex into latex equations
 import re
