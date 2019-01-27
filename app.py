@@ -150,8 +150,8 @@ class CameraExample(App):
             self.layout.remove_widget(self.output)
         self.clicked = True
         self.cameraObject.export_to_png('output.png')
-        # latex_string = image_to_latex('output.png')
-        latex_string = u'\\left. \\begin{array} { l } { 4 x ^ { 3 } + \\int _ { 0 } ^ { x } x ^ { 2 } d x } \\\\ { = 4 x ^ { 3 } + 3 x ^ { 3 } } \\\\ { = 7 x ^ { 3 } } \\end{array} \\right.'
+        latex_string = image_to_latex('output.png')
+        # latex_string = u'\\left. \\begin{array} { l } { 4 x ^ { 3 } + \\int _ { 0 } ^ { x } x ^ { 2 } d x } \\\\ { = 4 x ^ { 3 } + 3 x ^ { 3 } } \\\\ { = 7 x ^ { 3 } } \\end{array} \\right.'
         print latex_string.__repr__()
         latex_equations = split_into_equations(latex_string)
         print latex_equations
