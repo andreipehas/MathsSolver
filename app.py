@@ -48,7 +48,7 @@ def split_into_equations(s):
     else:
         return s.split("=")
 
-from process_latex import process_sympy
+from latex2sympy.process_latex import process_sympy
 import sympy
 
 # def check_equations_and_generate_pngs(latex_equations):
@@ -73,23 +73,30 @@ def check_equations_and_generate_pngs(latex_equations):
         for i in equations:
             print i, sympy.solveset(i, domain=sympy.S.Complexes)
         solution_sets = [sympy.solveset(i, domain=sympy.S.Complexes) for i in equations]
-        return [True]+[solution_sets[i]==solution_sets[i-1] for i in range(1, len(solution_sets))]
+        return [True]+[solution_sets[i-1].is_subset(solution_sets[i]) for i in range(1, len(solution_sets))]
     else:
         equations = [sympy.simplify(i.doit()) for i in equations_raw]
-        return [True]+[sympy.solveset(equations[i-1]-equations[i])==sympy.solveset(0) for i in range(1, len(equations))]
+        differences = [0]+[sympy.simplify(equations[i-1]-equations[i]) for i in range(1, len(equations))]
+        for i, equation in enumerate(differences):
+            sympy_equation_to_png(equation, "diff"+str(i)+".png")
+        return [True]+[sympy.solveset(differences[i])==sympy.solveset(0) for i in range(1, len(differences))]
 ################
  
 
 class Output(GridLayout):
     def __init__(self, latex_equations, **kwargs):
         super(Output, self).__init__(**kwargs)
-        self.cols = 3
+        is_multiple = len(latex_equations[0].split("="))>1
+        if(is_multiple):
+            self.cols = 3
+        else:
+            self.cols = 4
         # TODO: ENABLE
-        # try:
-        checked_equations = check_equations_and_generate_pngs(latex_equations)
-        # except:
-            # self.add_widget(Label(text="Ooops! I didn't understand that input.", color=[1,0,0, 1], font_size='60dp'))
-            # return
+        try:
+            checked_equations = check_equations_and_generate_pngs(latex_equations)
+        except:
+            self.add_widget(Label(text="Ooops! I didn't understand that input.", color=[1,0,0, 1], font_size='60dp'))
+            return
         print checked_equations
         for i, (latex_equation, checked_equation) in enumerate(zip(latex_equations, checked_equations)):
             if i == 0:
@@ -110,6 +117,8 @@ class Output(GridLayout):
                 self.add_widget(Label(text=text, color=[0,1,0, 1], font_size='30dp', markup=True))
             else:
                 self.add_widget(Label(text="[b]This step went wrong![/b]", color=[1,0,0, 1], font_size='30dp', markup=True))
+                
+            self.add_widget(Image(source="diff"+str(i)+".png", size_hint_x=0.8, size_hint_y=0.8, allow_stretch=True))
 
 
 class CameraExample(App):
