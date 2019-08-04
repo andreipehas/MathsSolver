@@ -1,4 +1,4 @@
-# MathsSolver (now EqChecker)
+# MathsSolver (now EqCheck)
 ICHack project
 
 Final version:
